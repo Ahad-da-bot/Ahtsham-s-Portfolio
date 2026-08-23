@@ -1,0 +1,343 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+:root {
+  --bg-color: #0b0c10;
+  --text-color: #f1f2f6;
+  --accent-color: #ffdfa0; /* Warm sun accent to match lighting */
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden; 
+  background-color: var(--bg-color);
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--text-color);
+}
+
+#app {
+  width: 100vw;
+  height: 100vh;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 1;
+}
+
+canvas {
+  display: block; 
+}
+
+.loading {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: var(--bg-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+  font-size: 1.5rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--accent-color);
+  transition: opacity 0.5s ease;
+  pointer-events: none;
+}
+
+.loading.hidden {
+  opacity: 0;
+}
+
+/* Overlays */
+.overlay-text {
+  position: absolute;
+  color: var(--text-color);
+  z-index: 10;
+  pointer-events: none;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.8);
+  opacity: 1;
+  transition: opacity 1s ease;
+}
+
+.overlay-text.hidden {
+  opacity: 0;
+}
+
+.top-left {
+  top: 30px;
+  left: 30px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  line-height: 1.5;
+  color: var(--accent-color);
+}
+
+.center {
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 2.2rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-align: center;
+  color: #fff;
+}
+
+/* UI Modals Container */
+.ui-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; 
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/* Glassmorphism Panel */
+.glass-panel {
+  background: rgba(25, 20, 45, 0.55);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 16px;
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  padding: 2rem;
+  color: white;
+  pointer-events: auto; 
+}
+
+/* Base Modal Styling */
+.modal {
+  position: absolute;
+  right: 4%;
+  bottom: 8%;
+  width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+  opacity: 0;
+  transform: translateY(20px) scale(0.95);
+  transition: opacity 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  visibility: hidden;
+}
+
+/* Custom Scrollbar for Modal */
+.modal::-webkit-scrollbar {
+  width: 6px;
+}
+.modal::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.05); 
+  border-radius: 10px;
+}
+.modal::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2); 
+  border-radius: 10px;
+}
+
+.modal.visible {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  visibility: visible;
+}
+
+/* Close Button */
+.close-btn {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background 0.2s, transform 0.2s;
+}
+.close-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.1);
+}
+
+/* Typography & Content Structure */
+.modal h2 {
+  margin-top: 0;
+  color: var(--accent-color);
+  font-size: 1.6rem;
+  letter-spacing: -0.5px;
+  margin-bottom: 0.5rem;
+  padding-right: 30px; /* Leave room for close btn */
+}
+
+.subtitle {
+  font-size: 0.9rem;
+  color: #aeb5c0;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.modal p {
+  line-height: 1.6;
+  color: #d1d5db;
+  font-size: 0.95rem;
+}
+
+/* Specific Sections */
+.job, .project, .edu {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+.job:last-child, .project:last-child, .edu:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.job h3, .project h3, .edu h3, .certs h3, .skills h3 {
+  margin: 0 0 0.3rem 0;
+  font-size: 1.1rem;
+  color: #fff;
+}
+
+.date {
+  display: block;
+  font-size: 0.8rem;
+  color: var(--accent-color);
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+}
+
+.accolades {
+  padding-left: 1.2rem;
+  color: #d1d5db;
+  line-height: 1.6;
+}
+.accolades li {
+  margin-bottom: 0.8rem;
+}
+
+/* Tags */
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 0.8rem;
+}
+
+.tags span {
+  background: rgba(255, 223, 160, 0.15); /* Warm tint */
+  color: #ffdfa0;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  border: 1px solid rgba(255, 223, 160, 0.3);
+}
+
+.tooltip {
+  position: absolute;
+  top: 5%;
+  padding: 1rem 2rem;
+  opacity: 0.8;
+  font-weight: 600;
+  font-size: 0.9rem;
+  letter-spacing: 1px;
+}
+
+/* Contact Links */
+.contact-links {
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  line-height: 1.6;
+}
+
+.contact-links a {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color 0.2s;
+  pointer-events: auto;
+}
+
+.contact-links a:hover {
+  color: #ffdfa0;
+  text-decoration: underline;
+}
+
+/* --- Mobile UI & Responsiveness --- */
+.mobile-controls {
+  display: none; /* hidden on desktop */
+  position: absolute;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 20;
+}
+
+.dpad {
+  display: grid;
+  grid-template-areas: 
+    ". up ."
+    "left . right"
+    ". down .";
+  gap: 10px;
+}
+
+.dpad-btn {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  color: white;
+  font-size: 24px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  user-select: none;
+  touch-action: none; /* Prevents zooming/panning on touch */
+}
+
+.dpad-btn:active {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+.up { grid-area: up; }
+.down { grid-area: down; }
+.left { grid-area: left; }
+.right { grid-area: right; }
+
+@media (max-width: 768px) {
+  .mobile-controls {
+    display: block;
+  }
+  
+  .modal {
+    width: 90%;
+    padding: 1.5rem;
+  }
+
+  .center {
+    font-size: 1.5rem;
+    width: 90%;
+  }
+
+  .top-left {
+    font-size: 0.9rem;
+    top: 20px;
+    left: 20px;
+  }
+}
