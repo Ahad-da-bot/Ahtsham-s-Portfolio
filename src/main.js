@@ -688,6 +688,80 @@ async function init() {
   const shipCollider = RAPIER.ColliderDesc.cuboid(3, 0.5, 2).setRestitution(0.5).setFriction(0.5);
   world.createCollider(shipCollider, shipBody);
 
+  // --- Audio System (Web Audio API) ---
+  let audioCtx = null;
+  let engineGain = null;
+  let engineFilter = null;
+  let audioInitialized = false;
+  let isMuted = false;
+
+  function initAudio() {
+      if (audioInitialized) return;
+      audioInitialized = true;
+      
+      const AudioContext = window.AudioContext || window.webkitAudioContext;
+      audioCtx = new AudioContext();
+      
+      const bufferSize = audioCtx.sampleRate * 2;
+      const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+      }
+      
+      const noise = audioCtx.createBufferSource();
+      noise.buffer = noiseBuffer;
+      noise.loop = true;
+      
+      engineFilter = audioCtx.createBiquadFilter();
+      engineFilter.type = 'lowpass';
+      engineFilter.frequency.value = 150;
+      
+      engineGain = audioCtx.createGain();
+      engineGain.gain.value = 0;
+      
+      noise.connect(engineFilter);
+      engineFilter.connect(engineGain);
+      engineGain.connect(audioCtx.destination);
+      noise.start();
+  }
+
+  function playUIBeep() {
+      if (isMuted || !audioCtx || audioCtx.state !== 'running') return;
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1200, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(600, audioCtx.currentTime + 0.1);
+      
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.1);
+  }
+
+  window.addEventListener('keydown', initAudio, { once: true });
+  window.addEventListener('touchstart', initAudio, { once: true });
+  window.addEventListener('mousedown', initAudio, { once: true });
+
+  const muteBtn = document.getElementById('mute-btn');
+  if (muteBtn) {
+      muteBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          initAudio();
+          isMuted = !isMuted;
+          muteBtn.innerText = isMuted ? '🔇' : '🔊';
+          if (isMuted && audioCtx) {
+              audioCtx.suspend();
+          } else if (!isMuted && audioCtx) {
+              audioCtx.resume();
+          }
+      });
+  }
+
   // --- Controls & Interaction ---
   const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
   let isModalOpen = false;
@@ -795,6 +869,7 @@ async function init() {
       if(canInteractWith && !isModalOpen) {
           const newEl = document.getElementById(`modal-${canInteractWith}`);
           if(newEl) {
+              playUIBeep();
               newEl.classList.add('visible');
               isModalOpen = true;
               document.body.classList.add('modal-open');
@@ -812,6 +887,7 @@ async function init() {
   });
 
   function closeAllModals() {
+      if(isModalOpen) playUIBeep();
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('visible'));
       isModalOpen = false;
       document.body.classList.remove('modal-open');
@@ -885,6 +961,7 @@ async function init() {
 
     if (isModalOpen) {
         engineMesh.visible = false;
+        if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
     } else {
         if (left) shipBody.applyTorqueImpulse({ x: 0, y: 7.5, z: 0 }, true);
         if (right) shipBody.applyTorqueImpulse({ x: 0, y: -7.5, z: 0 }, true);
@@ -896,6 +973,13 @@ async function init() {
           
           const thrust = up ? 40 : -20;
           shipBody.applyImpulse({ x: forward.x * thrust, y: forward.y * thrust, z: forward.z * thrust }, true);
+          
+          if (!isMuted && engineGain && audioCtx && audioCtx.state === 'running') {
+              engineGain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.1);
+              engineFilter.frequency.setTargetAtTime(up ? 300 : 200, audioCtx.currentTime, 0.1);
+          }
+        } else {
+          if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
         }
         
         const currentRot = shipBody.rotation();

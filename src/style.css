@@ -110,8 +110,34 @@ canvas {
 }
 
 .interact-btn:hover {
-  background: rgba(255, 223, 160, 0.4);
+  background: rgba(0, 255, 255, 0.2);
   transform: translateX(-50%) scale(1.05);
+  box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+}
+
+.mute-btn {
+  position: absolute;
+  top: 2rem;
+  right: 2rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  color: white;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(5px);
+  transition: all 0.3s ease;
+}
+
+.mute-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.1);
 }
 
 .interact-btn.hidden {
@@ -352,6 +378,7 @@ canvas {
 body.modal-open .touch-joystick,
 body.modal-open #instructions,
 body.modal-open #interact-btn,
+body.modal-open .mute-btn,
 body.modal-open #welcome {
   display: none !important;
 }
