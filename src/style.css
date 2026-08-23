@@ -288,14 +288,15 @@ canvas {
 }
 
 .job h3 a, .project h3 a, .edu h3 a {
-  color: #3498db;
+  color: var(--accent-color);
   text-decoration: none;
-  transition: color 0.2s;
+  transition: color 0.2s, text-shadow 0.2s;
   pointer-events: auto;
 }
 
 .job h3 a:hover, .project h3 a:hover, .edu h3 a:hover {
-  color: #ffdfa0;
+  color: #fff;
+  text-shadow: 0 0 10px rgba(255, 223, 160, 0.5);
   text-decoration: underline;
 }
 
