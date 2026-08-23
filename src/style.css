@@ -287,6 +287,18 @@ canvas {
   color: #fff;
 }
 
+.job h3 a, .project h3 a, .edu h3 a {
+  color: #3498db;
+  text-decoration: none;
+  transition: color 0.2s;
+  pointer-events: auto;
+}
+
+.job h3 a:hover, .project h3 a:hover, .edu h3 a:hover {
+  color: #ffdfa0;
+  text-decoration: underline;
+}
+
 .date {
   display: block;
   font-size: 0.8rem;
