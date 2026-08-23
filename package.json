@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@dimforge/rapier3d-compat": "^0.20.0",
+    "nipplejs": "^1.0.4",
     "three": "^0.185.1"
   }
 }

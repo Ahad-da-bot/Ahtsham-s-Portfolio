@@ -1,6 +1,7 @@
 import './style.css';
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
+import nipplejs from 'nipplejs';
 
 async function init() {
   await RAPIER.init();
@@ -696,21 +697,36 @@ async function init() {
   });
   window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
-  const btnUp = document.getElementById('btn-up');
-  const btnDown = document.getElementById('btn-down');
-  const btnLeft = document.getElementById('btn-left');
-  const btnRight = document.getElementById('btn-right');
+  const joystickZone = document.getElementById('joystick-zone');
+  if (joystickZone) {
+      const manager = nipplejs.create({
+          zone: joystickZone,
+          mode: 'static',
+          position: { left: '50%', top: '50%' },
+          color: 'white',
+          size: 120
+      });
 
-  function bindTouch(btn, key1, key2) {
-      if(!btn) return;
-      btn.addEventListener('touchstart', (e) => { e.preventDefault(); keys[key1] = true; keys[key2] = true; });
-      btn.addEventListener('touchend', (e) => { e.preventDefault(); keys[key1] = false; keys[key2] = false; });
+      manager.on('move', (evt, data) => {
+          keys.w = false; keys.s = false; keys.a = false; keys.d = false;
+          
+          if (data && data.angle) {
+              const angle = data.angle.degree;
+              // Forward (approx 45 to 135)
+              if (angle >= 22.5 && angle <= 157.5) keys.w = true;
+              // Backward (approx 225 to 315)
+              if (angle >= 202.5 && angle <= 337.5) keys.s = true;
+              // Left (approx 135 to 225)
+              if (angle >= 112.5 && angle <= 247.5) keys.a = true;
+              // Right (approx 315 to 45)
+              if (angle >= 292.5 || angle <= 67.5) keys.d = true;
+          }
+      });
+
+      manager.on('end', () => {
+          keys.w = false; keys.s = false; keys.a = false; keys.d = false;
+      });
   }
-
-  bindTouch(btnUp, 'w', 'ArrowUp');
-  bindTouch(btnDown, 's', 'ArrowDown');
-  bindTouch(btnLeft, 'a', 'ArrowLeft');
-  bindTouch(btnRight, 'd', 'ArrowRight');
 
   document.querySelectorAll('.close-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
