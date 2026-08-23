@@ -692,6 +692,8 @@ async function init() {
   let audioCtx = null;
   let engineGain = null;
   let engineFilter = null;
+  let bgGain = null;
+  let stationGain = null;
   let audioInitialized = false;
   let isMuted = false;
 
@@ -702,13 +704,13 @@ async function init() {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       audioCtx = new AudioContext();
       
+      // 1. Thruster Noise
       const bufferSize = audioCtx.sampleRate * 2;
       const noiseBuffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
       for (let i = 0; i < bufferSize; i++) {
           output[i] = Math.random() * 2 - 1;
       }
-      
       const noise = audioCtx.createBufferSource();
       noise.buffer = noiseBuffer;
       noise.loop = true;
@@ -724,6 +726,44 @@ async function init() {
       engineFilter.connect(engineGain);
       engineGain.connect(audioCtx.destination);
       noise.start();
+      
+      // 2. Background Space Hum (Deep Drone)
+      const bgOsc = audioCtx.createOscillator();
+      bgOsc.type = 'sine';
+      bgOsc.frequency.value = 50; 
+      bgGain = audioCtx.createGain();
+      bgGain.gain.value = 0.2; 
+      bgOsc.connect(bgGain);
+      bgGain.connect(audioCtx.destination);
+      bgOsc.start();
+      
+      // 3. Station Proximity Pulse (Tremolo)
+      const stationOsc = audioCtx.createOscillator();
+      stationOsc.type = 'sine';
+      stationOsc.frequency.value = 220; 
+      
+      const lfo = audioCtx.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.value = 3; // 3 pulses per second
+      
+      const lfoGain = audioCtx.createGain();
+      lfoGain.gain.value = 0.4;
+      
+      const tremoloGain = audioCtx.createGain();
+      tremoloGain.gain.value = 0.5;
+      
+      lfo.connect(lfoGain);
+      lfoGain.connect(tremoloGain.gain);
+      
+      stationGain = audioCtx.createGain();
+      stationGain.gain.value = 0; // muted until near a station
+      
+      stationOsc.connect(tremoloGain);
+      tremoloGain.connect(stationGain);
+      stationGain.connect(audioCtx.destination);
+      
+      stationOsc.start();
+      lfo.start();
   }
 
   function playUIBeep() {
@@ -961,7 +1001,6 @@ async function init() {
 
     if (isModalOpen) {
         engineMesh.visible = false;
-        if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
     } else {
         if (left) shipBody.applyTorqueImpulse({ x: 0, y: 7.5, z: 0 }, true);
         if (right) shipBody.applyTorqueImpulse({ x: 0, y: -7.5, z: 0 }, true);
@@ -973,13 +1012,6 @@ async function init() {
           
           const thrust = up ? 40 : -20;
           shipBody.applyImpulse({ x: forward.x * thrust, y: forward.y * thrust, z: forward.z * thrust }, true);
-          
-          if (!isMuted && engineGain && audioCtx && audioCtx.state === 'running') {
-              engineGain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.1);
-              engineFilter.frequency.setTargetAtTime(up ? 300 : 200, audioCtx.currentTime, 0.1);
-          }
-        } else {
-          if (engineGain && audioCtx) engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
         }
         
         const currentRot = shipBody.rotation();
@@ -1028,6 +1060,27 @@ async function init() {
     starField.position.z = shipPos.z * 0.5;
 
     updateUI(new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z));
+
+    // Audio Continuous Updates
+    if (!isMuted && audioCtx && audioCtx.state === 'running') {
+        // Thrusters
+        if (!isModalOpen && (up || down)) {
+            engineGain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.1);
+            engineFilter.frequency.setTargetAtTime(up ? 400 : 200, audioCtx.currentTime, 0.1);
+        } else {
+            engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
+        }
+        
+        // Station Proximity
+        if (canInteractWith && !isModalOpen) {
+            stationGain.gain.setTargetAtTime(0.15, audioCtx.currentTime, 0.5); // Fade in pulse
+        } else {
+            stationGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5); // Fade out pulse
+        }
+        
+        // Background Hum
+        bgGain.gain.setTargetAtTime(isModalOpen ? 0.05 : 0.2, audioCtx.currentTime, 0.5);
+    }
 
     renderer.render(scene, camera);
   }
