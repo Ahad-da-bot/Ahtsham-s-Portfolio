@@ -320,20 +320,36 @@ canvas {
 }
 
 /* --- Mobile UI & Responsiveness --- */
-.joystick-zone {
+.touch-joystick {
   display: none;
   position: absolute;
-  bottom: 2rem;
-  left: 20px;
-  width: 100px;
-  height: 100px;
+  top: 0; left: 0;
+  width: 100vw; height: 100vh;
   z-index: 20;
+  pointer-events: auto; /* Catch touches */
   touch-action: none;
-  opacity: 0.15;
+}
+.touch-base {
+  position: absolute;
+  width: 100px; height: 100px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  transform: translate(-50%, -50%);
+  display: none;
+  pointer-events: none; /* purely visual */
+}
+.touch-knob {
+  position: absolute;
+  width: 50px; height: 50px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.25);
+  transform: translate(-50%, -50%);
+  display: none;
+  pointer-events: none; /* purely visual */
 }
 
 /* UI Hiding Logic when Modal is Open */
-body.modal-open .joystick-zone,
+body.modal-open .touch-joystick,
 body.modal-open #instructions,
 body.modal-open #interact-btn,
 body.modal-open #welcome {
@@ -341,7 +357,7 @@ body.modal-open #welcome {
 }
 
 @media (max-width: 768px) {
-  .joystick-zone {
+  .touch-joystick {
     display: block;
   }
 

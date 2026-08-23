@@ -1,7 +1,6 @@
 import './style.css';
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
-import nipplejs from 'nipplejs';
 
 async function init() {
   await RAPIER.init();
@@ -702,31 +701,88 @@ async function init() {
   });
   window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
-  const joystickZone = document.getElementById('joystick-zone');
-  if (joystickZone) {
-      const manager = nipplejs.create({
-          zone: joystickZone,
-          mode: 'static',
-          position: { left: '50%', top: '50%' },
-          color: 'white',
-          size: 80
-      });
+  const touchJoystick = document.getElementById('touch-joystick');
+  const touchBase = document.getElementById('touch-base');
+  const touchKnob = document.getElementById('touch-knob');
+  
+  let touchId = null;
+  let startX = 0;
+  let startY = 0;
 
-      manager.on('move', (evt, data) => {
-          keys.w = false; keys.s = false; keys.a = false; keys.d = false;
-          if (data && data.vector) {
-              const x = data.vector.x;
-              const y = data.vector.y;
-              if (y > 0.2) keys.w = true;
-              if (y < -0.2) keys.s = true;
-              if (x < -0.2) keys.a = true;
-              if (x > 0.2) keys.d = true;
+  if (touchJoystick) {
+      touchJoystick.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          if (touchId !== null) return; 
+          const touch = e.changedTouches[0];
+          touchId = touch.identifier;
+          startX = touch.clientX;
+          startY = touch.clientY;
+          
+          touchBase.style.left = startX + 'px';
+          touchBase.style.top = startY + 'px';
+          touchKnob.style.left = startX + 'px';
+          touchKnob.style.top = startY + 'px';
+          
+          touchBase.style.display = 'block';
+          touchKnob.style.display = 'block';
+      }, {passive: false});
+
+      touchJoystick.addEventListener('touchmove', (e) => {
+          e.preventDefault();
+          if (touchId === null) return;
+          
+          let touch = null;
+          for(let i=0; i<e.changedTouches.length; i++) {
+              if (e.changedTouches[i].identifier === touchId) {
+                  touch = e.changedTouches[i];
+                  break;
+              }
           }
-      });
+          if(!touch) return;
 
-      manager.on('end', () => {
+          const currentX = touch.clientX;
+          const currentY = touch.clientY;
+          const dx = currentX - startX;
+          const dy = currentY - startY;
+
+          const maxDist = 40;
+          const distance = Math.sqrt(dx*dx + dy*dy);
+          let knobX = currentX;
+          let knobY = currentY;
+          
+          if (distance > maxDist) {
+              const angle = Math.atan2(dy, dx);
+              knobX = startX + Math.cos(angle) * maxDist;
+              knobY = startY + Math.sin(angle) * maxDist;
+          }
+          touchKnob.style.left = knobX + 'px';
+          touchKnob.style.top = knobY + 'px';
+
           keys.w = false; keys.s = false; keys.a = false; keys.d = false;
-      });
+          
+          const threshold = 15;
+          if (dy < -threshold) keys.w = true;
+          if (dy > threshold) keys.s = true;
+          if (dx < -threshold) keys.a = true;
+          if (dx > threshold) keys.d = true;
+      }, {passive: false});
+
+      const handleEnd = (e) => {
+          e.preventDefault();
+          if (touchId === null) return;
+          for(let i=0; i<e.changedTouches.length; i++) {
+              if (e.changedTouches[i].identifier === touchId) {
+                  touchId = null;
+                  keys.w = false; keys.s = false; keys.a = false; keys.d = false;
+                  touchBase.style.display = 'none';
+                  touchKnob.style.display = 'none';
+                  break;
+              }
+          }
+      };
+
+      touchJoystick.addEventListener('touchend', handleEnd, {passive: false});
+      touchJoystick.addEventListener('touchcancel', handleEnd, {passive: false});
   }
 
   if(interactBtn) {
