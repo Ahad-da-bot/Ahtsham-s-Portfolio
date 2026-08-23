@@ -876,8 +876,8 @@ async function init() {
     if (isModalOpen) {
         engineMesh.visible = false;
     } else {
-        if (left) shipBody.applyTorqueImpulse({ x: 0, y: 15.0, z: 0 }, true);
-        if (right) shipBody.applyTorqueImpulse({ x: 0, y: -15.0, z: 0 }, true);
+        if (left) shipBody.applyTorqueImpulse({ x: 0, y: 7.5, z: 0 }, true);
+        if (right) shipBody.applyTorqueImpulse({ x: 0, y: -7.5, z: 0 }, true);
 
         if (up || down) {
           const rot = shipBody.rotation();
