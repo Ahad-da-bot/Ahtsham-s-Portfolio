@@ -13,7 +13,7 @@ async function init() {
   scene.fog = new THREE.FogExp2(0x03040a, 0.005); 
   
   const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 4000);
-  const cameraOffset = new THREE.Vector3(0, 50, 40);
+  const cameraOffset = window.innerWidth < 768 ? new THREE.Vector3(0, 80, 45) : new THREE.Vector3(0, 50, 40);
   camera.position.copy(cameraOffset);
   camera.lookAt(0, 0, 0);
 
@@ -821,6 +821,16 @@ async function init() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    
+    if (window.innerWidth < 768) {
+        cameraOffset.set(0, 80, 45);
+    } else {
+        cameraOffset.set(0, 50, 40);
+    }
+    const tempCam = new THREE.PerspectiveCamera();
+    tempCam.position.copy(cameraOffset);
+    tempCam.lookAt(0, 0, 0);
+    camera.quaternion.copy(tempCam.quaternion);
   });
 
   setTimeout(() => {
