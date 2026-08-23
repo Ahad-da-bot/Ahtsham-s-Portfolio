@@ -324,13 +324,12 @@ canvas {
   display: none;
   position: absolute;
   bottom: 2rem;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 150px;
-  height: 150px;
+  left: 20px;
+  width: 100px;
+  height: 100px;
   z-index: 20;
   touch-action: none;
-  opacity: 0.2;
+  opacity: 0.15;
 }
 
 /* UI Hiding Logic when Modal is Open */

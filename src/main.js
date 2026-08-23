@@ -709,20 +709,18 @@ async function init() {
           mode: 'static',
           position: { left: '50%', top: '50%' },
           color: 'white',
-          size: 120
+          size: 80
       });
 
       manager.on('move', (evt, data) => {
           keys.w = false; keys.s = false; keys.a = false; keys.d = false;
-          
-          if (data && data.angle) {
-              const rad = data.angle.radian;
-              const x = Math.cos(rad);
-              const y = Math.sin(rad);
-              if (y > 0.3) keys.w = true;
-              if (y < -0.3) keys.s = true;
-              if (x < -0.3) keys.a = true;
-              if (x > 0.3) keys.d = true;
+          if (data && data.vector) {
+              const x = data.vector.x;
+              const y = data.vector.y;
+              if (y > 0.2) keys.w = true;
+              if (y < -0.2) keys.s = true;
+              if (x < -0.2) keys.a = true;
+              if (x > 0.2) keys.d = true;
           }
       });
 
