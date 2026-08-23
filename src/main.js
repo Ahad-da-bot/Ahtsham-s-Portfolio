@@ -691,9 +691,14 @@ async function init() {
 
   // --- Controls & Interaction ---
   const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+  let isModalOpen = false;
+  let canInteractWith = null;
+  const interactBtn = document.getElementById('interact-btn');
+
   window.addEventListener('keydown', (e) => { 
       if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
       if(e.key === 'Escape') closeAllModals();
+      if(e.key.toLowerCase() === 'e') triggerInteract();
   });
   window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
@@ -726,16 +731,36 @@ async function init() {
       });
   }
 
+  if(interactBtn) {
+      interactBtn.addEventListener('click', () => {
+          triggerInteract();
+      });
+  }
+
+  function triggerInteract() {
+      if(canInteractWith && !isModalOpen) {
+          const newEl = document.getElementById(`modal-${canInteractWith}`);
+          if(newEl) {
+              newEl.classList.add('visible');
+              isModalOpen = true;
+              document.body.classList.add('modal-open');
+              shipBody.setLinvel({x:0, y:0, z:0}, true);
+              shipBody.setAngvel({x:0, y:0, z:0}, true);
+              if(interactBtn) interactBtn.classList.add('hidden');
+          }
+      }
+  }
+
   document.querySelectorAll('.close-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
-          e.target.parentElement.classList.remove('visible');
-          manualClose = true;
+          closeAllModals();
       });
   });
 
   function closeAllModals() {
       document.querySelectorAll('.modal').forEach(m => m.classList.remove('visible'));
-      manualClose = true;
+      isModalOpen = false;
+      document.body.classList.remove('modal-open');
   }
 
   window.addEventListener('resize', () => {
@@ -750,9 +775,6 @@ async function init() {
 
   const clock = new THREE.Clock();
   
-  let currentActiveModal = null;
-  let manualClose = false;
-
   function updateUI(shipPos) {
       let closestSector = null;
       let minDst = Infinity;
@@ -765,19 +787,13 @@ async function init() {
           }
       }
 
-      if (closestSector !== currentActiveModal) {
-          if (currentActiveModal) {
-              const oldEl = document.getElementById(`modal-${currentActiveModal}`);
-              if(oldEl) oldEl.classList.remove('visible');
-          }
-          manualClose = false;
-          currentActiveModal = closestSector;
-      }
+      canInteractWith = closestSector;
 
-      if (closestSector && !manualClose) {
-          const newEl = document.getElementById(`modal-${closestSector}`);
-          if(newEl && !newEl.classList.contains('visible')) {
-             newEl.classList.add('visible');
+      if(interactBtn) {
+          if (canInteractWith && !isModalOpen) {
+              interactBtn.classList.remove('hidden');
+          } else {
+              interactBtn.classList.add('hidden');
           }
       }
   }
@@ -803,34 +819,39 @@ async function init() {
         }
     }
 
-    if (left) shipBody.applyTorqueImpulse({ x: 0, y: 15.0, z: 0 }, true);
-    if (right) shipBody.applyTorqueImpulse({ x: 0, y: -15.0, z: 0 }, true);
+    if (isModalOpen) {
+        engineMesh.visible = false;
+    } else {
+        if (left) shipBody.applyTorqueImpulse({ x: 0, y: 15.0, z: 0 }, true);
+        if (right) shipBody.applyTorqueImpulse({ x: 0, y: -15.0, z: 0 }, true);
 
-    if (up || down) {
-      const rot = shipBody.rotation();
-      const q = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
-      const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(q); 
-      
-      const thrust = up ? 40 : -20;
-      shipBody.applyImpulse({ x: forward.x * thrust, y: forward.y * thrust, z: forward.z * thrust }, true);
+        if (up || down) {
+          const rot = shipBody.rotation();
+          const q = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
+          const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(q); 
+          
+          const thrust = up ? 40 : -20;
+          shipBody.applyImpulse({ x: forward.x * thrust, y: forward.y * thrust, z: forward.z * thrust }, true);
+        }
+        
+        const currentRot = shipBody.rotation();
+        const qShip = new THREE.Quaternion(currentRot.x, currentRot.y, currentRot.z, currentRot.w);
+        const upVector = new THREE.Vector3(0, 1, 0).applyQuaternion(qShip);
+        const correctionAxis = new THREE.Vector3().crossVectors(upVector, new THREE.Vector3(0, 1, 0));
+        shipBody.applyTorqueImpulse({ 
+            x: correctionAxis.x * 20, 
+            y: correctionAxis.y * 20, 
+            z: correctionAxis.z * 20 
+        }, true);
+        
+        engineMesh.visible = up;
     }
-    
-    const currentRot = shipBody.rotation();
-    const qShip = new THREE.Quaternion(currentRot.x, currentRot.y, currentRot.z, currentRot.w);
-    const upVector = new THREE.Vector3(0, 1, 0).applyQuaternion(qShip);
-    const correctionAxis = new THREE.Vector3().crossVectors(upVector, new THREE.Vector3(0, 1, 0));
-    shipBody.applyTorqueImpulse({ 
-        x: correctionAxis.x * 20, 
-        y: correctionAxis.y * 20, 
-        z: correctionAxis.z * 20 
-    }, true);
 
     world.step();
 
     const shipPos = shipBody.translation();
     shipGroup.position.copy(shipPos);
     shipGroup.quaternion.copy(shipBody.rotation());
-    engineMesh.visible = up;
 
     const targetCamPos = new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z).add(cameraOffset);
     camera.position.lerp(targetCamPos, 0.08);
