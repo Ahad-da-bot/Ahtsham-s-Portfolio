@@ -711,15 +711,13 @@ async function init() {
           keys.w = false; keys.s = false; keys.a = false; keys.d = false;
           
           if (data && data.angle) {
-              const angle = data.angle.degree;
-              // Forward (approx 45 to 135)
-              if (angle >= 22.5 && angle <= 157.5) keys.w = true;
-              // Backward (approx 225 to 315)
-              if (angle >= 202.5 && angle <= 337.5) keys.s = true;
-              // Left (approx 135 to 225)
-              if (angle >= 112.5 && angle <= 247.5) keys.a = true;
-              // Right (approx 315 to 45)
-              if (angle >= 292.5 || angle <= 67.5) keys.d = true;
+              const rad = data.angle.radian;
+              const x = Math.cos(rad);
+              const y = Math.sin(rad);
+              if (y > 0.3) keys.w = true;
+              if (y < -0.3) keys.s = true;
+              if (x < -0.3) keys.a = true;
+              if (x > 0.3) keys.d = true;
           }
       });
 
