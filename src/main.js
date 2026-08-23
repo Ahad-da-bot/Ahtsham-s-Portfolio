@@ -737,32 +737,44 @@ async function init() {
       bgGain.connect(audioCtx.destination);
       bgOsc.start();
       
-      // 3. Station Proximity Pulse (Tremolo)
-      const stationOsc = audioCtx.createOscillator();
-      stationOsc.type = 'sine';
-      stationOsc.frequency.value = 220; 
+      // 3. Station Proximity Complex Sound (Harmonic Chord + Tremolo)
+      const stationBaseOsc = audioCtx.createOscillator();
+      stationBaseOsc.type = 'triangle';
+      stationBaseOsc.frequency.value = 146.83; // D3
+      
+      const stationMidOsc = audioCtx.createOscillator();
+      stationMidOsc.type = 'sine';
+      stationMidOsc.frequency.value = 220.00; // A3
+      
+      const stationHighOsc = audioCtx.createOscillator();
+      stationHighOsc.type = 'sine';
+      stationHighOsc.frequency.value = 293.66; // D4
       
       const lfo = audioCtx.createOscillator();
       lfo.type = 'sine';
-      lfo.frequency.value = 3; // 3 pulses per second
+      lfo.frequency.value = 4; // 4 pulses per second
       
       const lfoGain = audioCtx.createGain();
-      lfoGain.gain.value = 0.4;
+      lfoGain.gain.value = 0.5;
       
       const tremoloGain = audioCtx.createGain();
-      tremoloGain.gain.value = 0.5;
+      tremoloGain.gain.value = 0.6; // Increased base volume
       
       lfo.connect(lfoGain);
       lfoGain.connect(tremoloGain.gain);
       
       stationGain = audioCtx.createGain();
-      stationGain.gain.value = 0; // muted until near a station
+      stationGain.gain.value = 0; 
       
-      stationOsc.connect(tremoloGain);
+      stationBaseOsc.connect(tremoloGain);
+      stationMidOsc.connect(tremoloGain);
+      stationHighOsc.connect(tremoloGain);
       tremoloGain.connect(stationGain);
       stationGain.connect(audioCtx.destination);
       
-      stationOsc.start();
+      stationBaseOsc.start();
+      stationMidOsc.start();
+      stationHighOsc.start();
       lfo.start();
   }
 
@@ -811,7 +823,13 @@ async function init() {
   window.addEventListener('keydown', (e) => { 
       if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
       if(e.key === 'Escape') closeAllModals();
-      if(e.key.toLowerCase() === 'e') triggerInteract();
+      if(e.key.toLowerCase() === 'e') {
+          if (isModalOpen) {
+              closeAllModals();
+          } else {
+              triggerInteract();
+          }
+      }
   });
   window.addEventListener('keyup', (e) => { if(keys.hasOwnProperty(e.key)) keys[e.key] = false; });
 
@@ -1065,7 +1083,7 @@ async function init() {
     if (!isMuted && audioCtx && audioCtx.state === 'running') {
         // Thrusters
         if (!isModalOpen && (up || down)) {
-            engineGain.gain.setTargetAtTime(0.3, audioCtx.currentTime, 0.1);
+            engineGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.1);
             engineFilter.frequency.setTargetAtTime(up ? 400 : 200, audioCtx.currentTime, 0.1);
         } else {
             engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
@@ -1073,13 +1091,13 @@ async function init() {
         
         // Station Proximity
         if (canInteractWith && !isModalOpen) {
-            stationGain.gain.setTargetAtTime(0.15, audioCtx.currentTime, 0.5); // Fade in pulse
+            stationGain.gain.setTargetAtTime(0.4, audioCtx.currentTime, 0.5); // Louder fade in
         } else {
-            stationGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5); // Fade out pulse
+            stationGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.5); 
         }
         
         // Background Hum
-        bgGain.gain.setTargetAtTime(isModalOpen ? 0.05 : 0.2, audioCtx.currentTime, 0.5);
+        bgGain.gain.setTargetAtTime(isModalOpen ? 0.05 : 0.3, audioCtx.currentTime, 0.5);
     }
 
     renderer.render(scene, camera);
