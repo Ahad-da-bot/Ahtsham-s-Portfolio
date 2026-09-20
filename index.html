@@ -5,13 +5,19 @@
     <link rel="icon" type="image/png" href="/Ahtsham-s-Portfolio/favicon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Ahtsham Alam - Portfolio</title>
-    <script type="module" crossorigin src="/Ahtsham-s-Portfolio/assets/index-BEVOH1pj.js"></script>
-    <link rel="stylesheet" crossorigin href="/Ahtsham-s-Portfolio/assets/index-C7t-S1vM.css">
+    <script type="module" crossorigin src="/Ahtsham-s-Portfolio/assets/index-CWw0AcVY.js"></script>
+    <link rel="stylesheet" crossorigin href="/Ahtsham-s-Portfolio/assets/index-CmjP5cUv.css">
   </head>
   <body>
     <div id="loading" class="loading">Loading Environment...</div>
     
     <button id="mute-btn" class="mute-btn">🔊</button>
+    
+    <!-- Radar UI -->
+    <div id="radar-ui" class="radar-ui">
+      <div id="radar-blip-ship" class="radar-blip ship-blip"></div>
+      <!-- Station blips will be generated dynamically -->
+    </div>
 
     <!-- Instructions & Welcome -->
     <div id="instructions" class="overlay-text top-left">
@@ -24,9 +30,12 @@
     </div>
 
     <!-- Interact Button -->
-    <button id="interact-btn" class="interact-btn hidden">
-      <span class="desktop-hint">Press [E] to </span>INTERACT
-    </button>
+    <div class="action-buttons">
+      <button id="boost-btn" class="boost-btn hidden">🚀 BOOST</button>
+      <button id="interact-btn" class="interact-btn hidden">
+        <span class="desktop-hint">Press [E] to </span>INTERACT
+      </button>
+    </div>
 
     <!-- UI Modals Container -->
     <div id="ui-container" class="ui-container">
@@ -183,9 +192,27 @@
           <div class="subtitle">Let's build something extraordinary together.</div>
           <p>I bring a detail-oriented approach to business operations, combining technical automation skills with practical management experience. If you're looking for someone who can bridge the gap between strategy and digital execution, I'd love to connect.</p>
           
-          <div class="contact-links" style="margin-top: 1.5rem;">
-            <a href="https://mail.google.com/mail/?view=cm&fs=1&to=alamahtsham519@gmail.com" target="_blank" rel="noopener noreferrer">Send an Email</a> | 
-            <a href="https://wa.me/918957194027" target="_blank" rel="noopener noreferrer">Message on WhatsApp</a>
+          <form class="contact-form" action="https://api.web3forms.com/submit" method="POST">
+            <input type="hidden" name="access_key" value="YOUR_ACCESS_KEY_HERE">
+            <input type="hidden" name="subject" value="New Submission from Portfolio">
+            <input type="hidden" name="from_name" value="Portfolio Contact">
+            
+            <div class="form-group">
+              <input type="text" name="name" placeholder="Your Name" required>
+            </div>
+            <div class="form-group">
+              <input type="email" name="email" placeholder="Your Email" required>
+            </div>
+            <div class="form-group">
+              <textarea name="message" placeholder="Your Message" rows="4" required></textarea>
+            </div>
+            
+            <button type="submit" class="submit-btn">Send Message</button>
+            <input type="hidden" name="redirect" value="https://web3forms.com/success">
+          </form>
+
+          <div class="contact-links" style="margin-top: 1rem; text-align: center;">
+            <a href="https://wa.me/918957194027" target="_blank" rel="noopener noreferrer">Or message on WhatsApp</a>
           </div>
         </div>
       </div>
