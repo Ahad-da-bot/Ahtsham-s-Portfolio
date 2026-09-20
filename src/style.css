@@ -87,12 +87,19 @@ canvas {
   color: #fff;
 }
 
-/* Interact Button */
-.interact-btn {
+/* Action Buttons Container */
+.action-buttons {
   position: absolute;
   bottom: 10%;
   left: 50%;
   transform: translateX(-50%);
+  display: flex;
+  gap: 15px;
+  z-index: 50;
+}
+
+/* Base Action Button Styling */
+.interact-btn, .boost-btn {
   background: rgba(255, 223, 160, 0.2);
   border: 1px solid var(--accent-color);
   color: var(--accent-color);
@@ -102,17 +109,31 @@ canvas {
   font-weight: 800;
   letter-spacing: 2px;
   cursor: pointer;
-  z-index: 50;
   transition: all 0.3s ease;
   pointer-events: auto;
-  opacity: 1;
   backdrop-filter: blur(8px);
 }
 
 .interact-btn:hover {
   background: rgba(0, 255, 255, 0.2);
-  transform: translateX(-50%) scale(1.05);
+  transform: scale(1.05);
   box-shadow: 0 0 30px rgba(0, 255, 255, 0.4);
+}
+
+.boost-btn {
+  border-color: #00ffff;
+  color: #00ffff;
+}
+.boost-btn:active {
+  background: rgba(0, 255, 255, 0.4);
+  transform: scale(0.95);
+  box-shadow: 0 0 40px rgba(0, 255, 255, 0.6);
+}
+
+.interact-btn.hidden, .boost-btn.hidden {
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(20px);
 }
 
 .mute-btn {
@@ -158,6 +179,67 @@ canvas {
   display: flex;
   justify-content: center;
   align-items: center;
+}
+
+/* Radar UI */
+.radar-ui {
+  position: absolute;
+  bottom: 30px;
+  right: 30px;
+  width: 150px;
+  height: 150px;
+  border-radius: 50%;
+  background: rgba(10, 15, 25, 0.4);
+  border: 1px solid rgba(0, 255, 255, 0.3);
+  backdrop-filter: blur(10px);
+  z-index: 40;
+  pointer-events: none;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 255, 255, 0.1);
+  transition: opacity 0.5s ease;
+}
+
+/* Add grid rings to radar */
+.radar-ui::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 50%; height: 50%;
+  border-radius: 50%;
+  border: 1px dashed rgba(0, 255, 255, 0.2);
+}
+.radar-ui::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px; height: 100%;
+  background: rgba(0, 255, 255, 0.1);
+}
+
+.radar-blip {
+  position: absolute;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.ship-blip {
+  width: 8px;
+  height: 8px;
+  background: #00ffff;
+  box-shadow: 0 0 8px #00ffff;
+  z-index: 2;
+  top: 50%;
+  left: 50%;
+}
+
+.station-blip {
+  width: 6px;
+  height: 6px;
+  background: #ffdfa0;
+  box-shadow: 0 0 6px #ffdfa0;
+  z-index: 1;
 }
 
 /* Glassmorphism Panel */
@@ -358,6 +440,52 @@ canvas {
   text-decoration: underline;
 }
 
+/* Contact Form */
+.contact-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 1rem;
+}
+
+.form-group input, .form-group textarea {
+  width: 100%;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 6px;
+  color: #fff;
+  font-family: 'Inter', sans-serif;
+  font-size: 0.95rem;
+  box-sizing: border-box;
+  transition: all 0.2s;
+}
+
+.form-group input:focus, .form-group textarea:focus {
+  outline: none;
+  border-color: #3498db;
+  background: rgba(0, 0, 0, 0.2);
+  box-shadow: 0 0 10px rgba(52, 152, 219, 0.3);
+}
+
+.submit-btn {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  pointer-events: auto;
+}
+
+.submit-btn:hover {
+  background: #2980b9;
+  box-shadow: 0 0 15px rgba(52, 152, 219, 0.5);
+}
+
 /* --- Mobile UI & Responsiveness --- */
 .touch-joystick {
   display: none;
@@ -390,9 +518,10 @@ canvas {
 /* UI Hiding Logic when Modal is Open */
 body.modal-open .touch-joystick,
 body.modal-open #instructions,
-body.modal-open #interact-btn,
+body.modal-open .action-buttons,
 body.modal-open .mute-btn,
-body.modal-open #welcome {
+body.modal-open #welcome,
+body.modal-open .radar-ui {
   display: none !important;
 }
 
@@ -405,9 +534,20 @@ body.modal-open #welcome {
     display: none;
   }
   
-  .interact-btn {
+  .action-buttons {
     bottom: 25%; /* sit right above the joystick zone */
+  }
+  .interact-btn, .boost-btn {
     font-size: 1rem;
+    padding: 10px 20px;
+  }
+  
+  .radar-ui {
+    width: 100px;
+    height: 100px;
+    bottom: auto;
+    top: 70px;
+    right: 20px;
   }
   
   .modal {

@@ -1,6 +1,10 @@
 import './style.css';
 import * as THREE from 'three';
 import * as RAPIER from '@dimforge/rapier3d-compat';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 
 async function init() {
   await RAPIER.init();
@@ -22,7 +26,22 @@ async function init() {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.shadowMap.enabled = true;
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ReinhardToneMapping;
+  renderer.toneMappingExposure = 1.2;
   app.appendChild(renderer.domElement);
+
+  // Post-Processing
+  const renderScene = new RenderPass(scene, camera);
+  const bloomPass = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.5, 0.4, 0.85);
+  bloomPass.threshold = 0.5;
+  bloomPass.strength = 1.5; 
+  bloomPass.radius = 0.5;
+  const outputPass = new OutputPass();
+
+  const composer = new EffectComposer(renderer);
+  composer.addPass(renderScene);
+  composer.addPass(bloomPass);
+  composer.addPass(outputPass);
 
   const ambientLight = new THREE.AmbientLight(0x201838, 2.5); 
   scene.add(ambientLight);
@@ -502,7 +521,8 @@ async function init() {
   world.createCollider(RAPIER.ColliderDesc.cylinder(5, 3), world.createRigidBody(RAPIER.RigidBodyDesc.fixed().setTranslation(s7.position.x, 0, s7.position.z)));
   scene.add(s7);
 
-  // --- Physics Toys (Complex Debris - 2x detail) ---
+  // --- Physics Toys (InstancedMesh Optimization) ---
+  const toysCount = 120;
   const toys = [];
   const toyMats = [
       getMaterial('#e67e22', 0, 0, 0.2, 0.8), // orange
@@ -510,95 +530,28 @@ async function init() {
       getMaterial('#95a5a6', 0, 0, 0, 1.0)    // gray asteroid
   ];
 
-  function createToy(type, pos) {
-      const group = new THREE.Group();
-      let colliderDesc;
-      
-      if (type === 'canister') {
-          // Complex Canister
-          const bodyColor = toyMats[Math.floor(Math.random()*2)];
-          const body = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.2, 3, 8), bodyColor);
-          body.castShadow = true;
-          body.receiveShadow = true;
-          group.add(body);
-          
-          // Metal end caps
-          const capGeo = new THREE.CylinderGeometry(1.3, 1.3, 0.4, 8);
-          const cap1 = new THREE.Mesh(capGeo, getMaterial('#7f8c8d', 0, 0, 0.8, 0.2));
-          cap1.position.y = 1.4;
-          group.add(cap1);
-          const cap2 = new THREE.Mesh(capGeo, getMaterial('#7f8c8d', 0, 0, 0.8, 0.2));
-          cap2.position.y = -1.4;
-          group.add(cap2);
-          
-          // Glowing hazard stripe
-          const stripe = new THREE.Mesh(new THREE.CylinderGeometry(1.25, 1.25, 0.3, 8), getMaterial('#f1c40f', '#f1c40f', 1.5));
-          group.add(stripe);
-          
-          colliderDesc = RAPIER.ColliderDesc.cylinder(1.6, 1.3).setRestitution(0.5).setFriction(0.5).setMass(1);
-          
-      } else if (type === 'asteroid') {
-          // Complex Asteroid
-          const r = 2 + Math.random()*2;
-          const geo = new THREE.DodecahedronGeometry(r, 0);
-          const posAttr = geo.getAttribute('position');
-          for(let i=0; i<posAttr.count; i++) {
-              posAttr.setX(i, posAttr.getX(i) + (Math.random()-0.5)*0.8);
-              posAttr.setY(i, posAttr.getY(i) + (Math.random()-0.5)*0.8);
-              posAttr.setZ(i, posAttr.getZ(i) + (Math.random()-0.5)*0.8);
-          }
-          geo.computeVertexNormals();
-          const rock = new THREE.Mesh(geo, toyMats[2]);
-          rock.castShadow = true;
-          rock.receiveShadow = true;
-          group.add(rock);
-          
-          // Embedded glowing crystals
-          for(let c=0; c<3; c++) {
-              const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.8, 0), getMaterial('#ccff00', '#ccff00', 1.5));
-              crystal.position.set((Math.random()-0.5)*r, (Math.random()-0.5)*r, (Math.random()-0.5)*r).normalize().multiplyScalar(r * 0.9);
-              // align crystal outwards
-              crystal.lookAt(0,0,0);
-              group.add(crystal);
-          }
-          
-          colliderDesc = RAPIER.ColliderDesc.ball(r * 1.1).setRestitution(0.2).setFriction(0.8).setMass(3);
-          
-      } else if (type === 'panel') {
-          // Complex Solar Panel
-          const base = new THREE.Mesh(new THREE.BoxGeometry(5, 0.3, 5), getMaterial('#2c3e50', 0, 0, 0.2, 0.9));
-          base.castShadow = true;
-          group.add(base);
-          
-          // Grid overlay
-          const grid = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 4.6, 4, 4), getMaterial('#3498db', '#3498db', 0.5, 0, 0, true));
-          grid.rotation.x = -Math.PI/2;
-          grid.position.y = 0.16;
-          group.add(grid);
-          
-          // Broken hinge mechanism
-          const hinge = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 5, 8), getMaterial('#7f8c8d'));
-          hinge.rotation.z = Math.PI/2;
-          hinge.position.set(0, 0, 2.5);
-          group.add(hinge);
-          
-          colliderDesc = RAPIER.ColliderDesc.cuboid(2.5, 0.2, 2.7).setRestitution(0.3).setFriction(0.5).setMass(0.8);
-      }
+  // Geometries for InstancedMeshes
+  const canisterGeo = new THREE.CylinderGeometry(1.2, 1.2, 3, 8);
+  const stripeGeo = new THREE.CylinderGeometry(1.25, 1.25, 0.3, 8);
+  const asteroidGeo = new THREE.DodecahedronGeometry(2.5, 0);
+  const panelBaseGeo = new THREE.BoxGeometry(5, 0.3, 5);
 
-      scene.add(group);
+  // Instanced Meshes
+  const imCanister = new THREE.InstancedMesh(canisterGeo, toyMats[0], toysCount);
+  const imStripe = new THREE.InstancedMesh(stripeGeo, getMaterial('#f1c40f', '#f1c40f', 1.5), toysCount);
+  const imAsteroid = new THREE.InstancedMesh(asteroidGeo, toyMats[2], toysCount);
+  const imPanel = new THREE.InstancedMesh(panelBaseGeo, getMaterial('#2c3e50', 0, 0, 0.2, 0.9), toysCount);
 
-      const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
-          .setTranslation(pos.x, pos.y, pos.z)
-          .setLinearDamping(0.2)
-          .setAngularDamping(0.2);
-      const body = world.createRigidBody(bodyDesc);
-      world.createCollider(colliderDesc, body);
+  [imCanister, imStripe, imAsteroid, imPanel].forEach(im => {
+      im.castShadow = true;
+      im.receiveShadow = true;
+      scene.add(im);
+  });
 
-      toys.push({ mesh: group, body });
-  }
+  const dummy = new THREE.Object3D();
 
-  // Scatter toys
-  for(let i=0; i<120; i++) {
+  // Pre-calculate positions
+  for(let i = 0; i < toysCount; i++) {
       const t = Math.random() * 6; 
       const segment = Math.floor(t);
       const frac = t - segment;
@@ -615,9 +568,66 @@ async function init() {
       px += (Math.random() - 0.5) * 80;
       pz += (Math.random() - 0.5) * 80;
       const py = (Math.random() - 0.5) * 20;
+      const pos = new THREE.Vector3(px, py, pz);
 
-      const types = ['canister', 'canister', 'asteroid', 'asteroid', 'panel'];
-      createToy(types[Math.floor(Math.random()*types.length)], new THREE.Vector3(px, py, pz));
+      const typeRnd = Math.random();
+      let type, colliderDesc, mass, rest, fric;
+
+      if (typeRnd < 0.4) {
+          type = 'canister';
+          colliderDesc = RAPIER.ColliderDesc.cylinder(1.5, 1.3);
+          mass = 1; rest = 0.5; fric = 0.5;
+      } else if (typeRnd < 0.8) {
+          type = 'asteroid';
+          colliderDesc = RAPIER.ColliderDesc.ball(2.8);
+          mass = 3; rest = 0.2; fric = 0.8;
+      } else {
+          type = 'panel';
+          colliderDesc = RAPIER.ColliderDesc.cuboid(2.5, 0.2, 2.5);
+          mass = 0.8; rest = 0.3; fric = 0.5;
+      }
+
+      const bodyDesc = RAPIER.RigidBodyDesc.dynamic()
+          .setTranslation(pos.x, pos.y, pos.z)
+          .setLinearDamping(0.2)
+          .setAngularDamping(0.2);
+      const body = world.createRigidBody(bodyDesc);
+      world.createCollider(colliderDesc.setRestitution(rest).setFriction(fric).setMass(mass), body);
+
+      toys.push({ index: i, type, body });
+
+      // Initialize unused instances far away
+      dummy.position.set(0, -10000, 0);
+      dummy.updateMatrix();
+      if (type !== 'canister') {
+          imCanister.setMatrixAt(i, dummy.matrix);
+          imStripe.setMatrixAt(i, dummy.matrix);
+      }
+      if (type !== 'asteroid') imAsteroid.setMatrixAt(i, dummy.matrix);
+      if (type !== 'panel') imPanel.setMatrixAt(i, dummy.matrix);
+  }
+
+  function updateInstancedToys() {
+      for (const t of toys) {
+          const trans = t.body.translation();
+          const rot = t.body.rotation();
+          dummy.position.set(trans.x, trans.y, trans.z);
+          dummy.quaternion.set(rot.x, rot.y, rot.z, rot.w);
+          dummy.updateMatrix();
+
+          if (t.type === 'canister') {
+              imCanister.setMatrixAt(t.index, dummy.matrix);
+              imStripe.setMatrixAt(t.index, dummy.matrix);
+          } else if (t.type === 'asteroid') {
+              imAsteroid.setMatrixAt(t.index, dummy.matrix);
+          } else if (t.type === 'panel') {
+              imPanel.setMatrixAt(t.index, dummy.matrix);
+          }
+      }
+      imCanister.instanceMatrix.needsUpdate = true;
+      imStripe.instanceMatrix.needsUpdate = true;
+      imAsteroid.instanceMatrix.needsUpdate = true;
+      imPanel.instanceMatrix.needsUpdate = true;
   }
 
 
@@ -815,10 +825,11 @@ async function init() {
   }
 
   // --- Controls & Interaction ---
-  const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false };
+  const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false, Shift: false };
   let isModalOpen = false;
   let canInteractWith = null;
   const interactBtn = document.getElementById('interact-btn');
+  const boostBtn = document.getElementById('boost-btn');
 
   window.addEventListener('keydown', (e) => { 
       if(keys.hasOwnProperty(e.key)) keys[e.key] = true; 
@@ -955,6 +966,7 @@ async function init() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    composer.setSize(window.innerWidth, window.innerHeight);
     
     if (window.innerWidth < 768) {
         cameraOffset.set(0, 80, 45);
@@ -973,6 +985,31 @@ async function init() {
 
   const clock = new THREE.Clock();
   
+  // --- Radar UI Setup ---
+  const radarUi = document.getElementById('radar-ui');
+  const shipBlip = document.getElementById('radar-blip-ship');
+  const radarSize = 150;
+  const mapSize = 1000; // Total world size to map
+  
+  // Create station blips
+  stations.forEach(station => {
+      const blip = document.createElement('div');
+      blip.className = 'radar-blip station-blip';
+      const pctX = ((station.pos.x + mapSize/2) / mapSize) * 100;
+      const pctZ = ((station.pos.z + mapSize/2) / mapSize) * 100;
+      blip.style.left = `${pctX}%`;
+      blip.style.top = `${pctZ}%`;
+      if(radarUi) radarUi.appendChild(blip);
+  });
+  
+  // Mobile Boost Support
+  if(boostBtn) {
+      boostBtn.addEventListener('touchstart', (e) => { e.preventDefault(); keys.Shift = true; });
+      boostBtn.addEventListener('touchend', (e) => { e.preventDefault(); keys.Shift = false; });
+      boostBtn.addEventListener('mousedown', () => { keys.Shift = true; });
+      boostBtn.addEventListener('mouseup', () => { keys.Shift = false; });
+  }
+
   function updateUI(shipPos) {
       let closestSector = null;
       let minDst = Infinity;
@@ -993,6 +1030,22 @@ async function init() {
           } else {
               interactBtn.classList.add('hidden');
           }
+      }
+      
+      if(boostBtn) {
+          if (!isModalOpen) {
+              boostBtn.classList.remove('hidden');
+          } else {
+              boostBtn.classList.add('hidden');
+          }
+      }
+
+      // Update radar ship position
+      if (shipBlip) {
+          const pctX = ((shipPos.x + mapSize/2) / mapSize) * 100;
+          const pctZ = ((shipPos.z + mapSize/2) / mapSize) * 100;
+          shipBlip.style.left = `${Math.max(0, Math.min(100, pctX))}%`;
+          shipBlip.style.top = `${Math.max(0, Math.min(100, pctZ))}%`;
       }
   }
 
@@ -1028,8 +1081,21 @@ async function init() {
           const q = new THREE.Quaternion(rot.x, rot.y, rot.z, rot.w);
           const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(q); 
           
-          const thrust = up ? 40 : -20;
+          let thrust = up ? 40 : -20;
+          
+          // Hyperdrive Easter Egg
+          if (up && keys.Shift) {
+              thrust = 120;
+              camera.fov = THREE.MathUtils.lerp(camera.fov, 75, 0.1);
+          } else {
+              camera.fov = THREE.MathUtils.lerp(camera.fov, 50, 0.1);
+          }
+          camera.updateProjectionMatrix();
+          
           shipBody.applyImpulse({ x: forward.x * thrust, y: forward.y * thrust, z: forward.z * thrust }, true);
+        } else {
+            camera.fov = THREE.MathUtils.lerp(camera.fov, 50, 0.1);
+            camera.updateProjectionMatrix();
         }
         
         const currentRot = shipBody.rotation();
@@ -1051,13 +1117,28 @@ async function init() {
     shipGroup.position.copy(shipPos);
     shipGroup.quaternion.copy(shipBody.rotation());
 
-    const targetCamPos = new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z).add(cameraOffset);
-    camera.position.lerp(targetCamPos, 0.08);
+    // --- Cinematic Camera Transitions ---
+    let lookTarget = new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z);
+    let camPosTarget = new THREE.Vector3(shipPos.x, shipPos.y, shipPos.z).add(cameraOffset);
 
-    for (const t of toys) {
-        t.mesh.position.copy(t.body.translation());
-        t.mesh.quaternion.copy(t.body.rotation());
+    if (isModalOpen && canInteractWith) {
+        const st = stations.find(s => s.id === canInteractWith);
+        if (st) {
+            lookTarget = st.pos.clone();
+            // Cinematic offset for station viewing
+            camPosTarget = st.pos.clone().add(new THREE.Vector3(0, 30, 40)); 
+        }
     }
+
+    camera.position.lerp(camPosTarget, 0.05);
+    
+    const dummyCam = new THREE.PerspectiveCamera();
+    dummyCam.position.copy(camera.position);
+    dummyCam.lookAt(lookTarget);
+    camera.quaternion.slerp(dummyCam.quaternion, 0.05);
+
+    // Update Instanced Toys
+    updateInstancedToys();
 
     for (const obj of interactables) {
         if (obj.speedX) obj.mesh.rotation.x += obj.speedX * dt;
@@ -1081,10 +1162,10 @@ async function init() {
 
     // Audio Continuous Updates
     if (!isMuted && audioCtx && audioCtx.state === 'running') {
-        // Thrusters
+        // Thrusters & Hyperdrive Audio
         if (!isModalOpen && (up || down)) {
-            engineGain.gain.setTargetAtTime(0.5, audioCtx.currentTime, 0.1);
-            engineFilter.frequency.setTargetAtTime(up ? 400 : 200, audioCtx.currentTime, 0.1);
+            engineGain.gain.setTargetAtTime(keys.Shift ? 0.8 : 0.5, audioCtx.currentTime, 0.1);
+            engineFilter.frequency.setTargetAtTime(keys.Shift ? 800 : (up ? 400 : 200), audioCtx.currentTime, 0.1);
         } else {
             engineGain.gain.setTargetAtTime(0, audioCtx.currentTime, 0.1);
         }
@@ -1100,7 +1181,7 @@ async function init() {
         bgGain.gain.setTargetAtTime(isModalOpen ? 0.05 : 0.3, audioCtx.currentTime, 0.5);
     }
 
-    renderer.render(scene, camera);
+    composer.render();
   }
 
   animate();
